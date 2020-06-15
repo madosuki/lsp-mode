@@ -1990,22 +1990,32 @@ WORKSPACE is the workspace that contains the progress token."
   (when (require 'lsp-treemacs t t)
     (treemacs-get-icon-value (lsp-treemacs-symbol-kind->icon kind))))
 
+(lsp-defun lsp--headerline-with-action ((&DocumentSymbol :name) symbol-string)
+  "Build action for SYMBOL and SYMBOL-STRING."
+  (propertize symbol-string
+              'mouse-face 'header-line-highlight
+              'help-echo "mouse-1: show symbols on this same level"
+              'local-map (-doto (make-sparse-keymap)
+                           (define-key [mouse-1]
+                             (message "asd")))))
+
 (defun lsp--headerline-build-string (symbols-hierarchy)
   "Build the header-line from SYMBOLS-HIERARCHY."
   (seq-reduce (lambda (last-symbol-name symbol-to-append)
-                (let ((symbol2-name (if (lsp:document-symbol-deprecated? symbol-to-append)
-                                        (propertize (lsp:document-symbol-name symbol-to-append)
-                                                    'font-lock-face 'lsp-headerline-breadcrumb-deprecated-face)
-                                      (propertize (lsp:document-symbol-name symbol-to-append)
-                                                  'font-lock-face lsp-headerline-breadcrumb-face)))
-                      (symbol2-icon (lsp--headerline-breadcrumb-symbol-icon symbol-to-append))
-                      (arrow-icon (lsp--headerline-breadcrumb-arrow-icon)))
+                (let* ((symbol2-name (if (lsp:document-symbol-deprecated? symbol-to-append)
+                                         (propertize (lsp:document-symbol-name symbol-to-append)
+                                                     'font-lock-face 'lsp-headerline-breadcrumb-deprecated-face)
+                                       (propertize (lsp:document-symbol-name symbol-to-append)
+                                                   'font-lock-face lsp-headerline-breadcrumb-face)))
+                       (symbol2-icon (lsp--headerline-breadcrumb-symbol-icon symbol-to-append))
+                       (arrow-icon (lsp--headerline-breadcrumb-arrow-icon))
+                       (full-symbol-2 (if symbol2-icon
+                                          (concat symbol2-icon symbol2-name)
+                                        symbol2-name)))
                   (format "%s %s %s"
                           last-symbol-name
                           arrow-icon
-                          (if symbol2-icon
-                              (concat symbol2-icon symbol2-name)
-                            symbol2-name))))
+                          (lsp--headerline-with-action symbol-to-append full-symbol-2))))
               symbols-hierarchy ""))
 
 (defun lsp--headerline-document-symbols->symbols-hierarchy (document-symbols)
